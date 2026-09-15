@@ -16,7 +16,7 @@ buying signal. It ends with a recap of the techniques demonstrated.
 
 It is the demonstration counterpart to the learner-driven role-play in the
 `SALESCLOSINGANDOBJECTIONSDO` repo — same seven phases, same techniques, shown rather than
-practised.
+practiced.
 
 ## Localization
 
