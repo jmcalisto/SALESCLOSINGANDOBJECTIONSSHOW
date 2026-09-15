@@ -6,7 +6,7 @@
 <title>Jack's Solution &amp; Close — Show</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Show-section (comic) design tokens — see the SALESSHOWSTYLEGUIDE repo.
      Speakers renamed from the guide's --ana/--jack to --con/--jack: the
@@ -148,6 +148,52 @@
   .fs-btn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
   .fs-btn.is-on{background:rgba(255,255,255,.14);color:#fff;
     border-color:rgba(255,255,255,.4);box-shadow:none}
+
+  /* language switcher — lives on the intro screen, where there is room and
+     where a learner chooses once. ?lang= remains the primary mechanism for
+     LMS embeds. */
+  .langbar{margin:0 0 14px}
+  .langbar select{font:inherit;font-size:12.5px;font-weight:700;color:#fff;
+    background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);
+    border-radius:999px;padding:6px 14px;cursor:pointer}
+  .langbar select:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+  .langbar option{color:#132441}
+
+  /* ---------- right-to-left (Arabic) ----------
+     Two separate jobs here, and only one of them is a mirror.
+
+     MIRRORED: reading-order chrome. The progress rail, the topbar row and the
+     fullscreen button all flip on their own because they use flex and logical
+     properties, so they need nothing.
+
+     NOT MIRRORED: anything anchored to the photograph. Jack physically sits on
+     the left of the frame and the Consultant on the right, so their bubbles,
+     nameplates and the speaker spotlight stay where the people are. Under
+     dir=rtl the cross-axis flex-start/flex-end of .bubbles would otherwise
+     swap the two speakers over and point each tail at the wrong person, so
+     they are pinned back explicitly below.
+
+     Bangers is a Latin-only display face — Arabic text in it silently falls
+     back to whatever the OS picks, which reads as a different design. So every
+     Bangers rule swaps to Noto Sans Arabic in RTL. */
+  [dir="rtl"] body,
+  [dir="rtl"] .bubble,
+  [dir="rtl"] .screen,
+  [dir="rtl"] .card,
+  [dir="rtl"] .btn{font-family:'Noto Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif}
+  [dir="rtl"] .nameplate,
+  [dir="rtl"] .cap,
+  [dir="rtl"] .bubble .sp,
+  [dir="rtl"] .bubble.thinking,
+  [dir="rtl"] .card h3,
+  [dir="rtl"] .screen h1{font-family:'Noto Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;
+    font-weight:800;letter-spacing:0}
+  [dir="rtl"] .screen h1{font-size:30px;line-height:1.25}
+  [dir="rtl"] .cap{font-size:12.5px}
+  [dir="rtl"] .seg .lab{font-size:8.2px}
+  /* keep each speaker on their own side of the photo */
+  [dir="rtl"] .bubble.jack{align-self:flex-end}
+  [dir="rtl"] .bubble.con{align-self:flex-start}
 </style>
 </head>
 <body>
@@ -161,6 +207,7 @@
     <h2 id="i-sub"></h2>
     <p id="i-body"></p>
     <div class="persona" id="i-persona"></div>
+    <div class="langbar"><select id="langsel" aria-label="Language"></select></div>
     <button class="btn btn-red" id="i-start"></button>
   </div>
 
@@ -197,54 +244,430 @@
 </div>
 
 <script>
-const UI = {
-  /* Fullscreen button. All four strings are shown to learners: hint and newtab
-     are the fallbacks for when the embed does not permit fullscreen. */
+/* =========================================================================
+   I18N — every language lives in this one file.
+
+   Structure is declared ONCE in BEATS (who speaks, which phase, whether the
+   beat carries a technique callout). Only text is per-language, as two flat
+   collections:
+     lines[i]  — what the speaker says at beat i        (19 entries)
+     caps[i]   — the callout attached to beat i         (11 entries, keyed)
+   Six copies of the full object tree would invite structural drift — a lost
+   callout or a wrong phase in one language only — so the shape is shared and
+   the translator edits flat text.
+
+   Language is chosen from ?lang=xx, then the browser, then English. For an
+   LMS embed, set one localized embed per course language:
+       .../show_jack_solution_close.html?lang=it
+   ========================================================================= */
+
+/* who: 0 = Jack (left of frame), 1 = the Consultant (right of frame) */
+const BEATS = [
+  {phase:0,who:1,cap:1}, {phase:0,who:0},
+  {phase:1,who:1,cap:1}, {phase:1,who:0},
+  {phase:2,who:1,cap:1}, {phase:2,who:1,cap:1}, {phase:2,who:0},
+  {phase:3,who:1,cap:1}, {phase:3,who:0},
+  {phase:4,who:1,cap:1}, {phase:4,who:0},
+  {phase:5,who:1,cap:1}, {phase:5,who:1,cap:1}, {phase:5,who:0},
+  {phase:5,who:1,cap:1}, {phase:5,who:0},
+  {phase:6,who:0,cap:1}, {phase:6,who:1,cap:1}, {phase:6,who:0}
+];
+
+const I18N = {
+
+/* ---------------------------------------------------------------- English */
+en:{
+  consultant:"Consultant", jack:"Jack",
+  next:"Next ▸", finish:"Finish ▸", tapHint:"Tap Next to continue",
+  kicker:"Solution, Closing & Objections · Watch",
+  title:"Watch a good close",
+  sub:"Take a look at how this Consultant treats Jack's objection and closes the sale.",
+  intro:"Tap Next to follow the talk. When the Consultant uses a skill, a note tells you what it is and why it works.",
+  persona:"<b>Jack · IT Manager · 34 · Level 3</b><br><b>His goal:</b> to speak English well and get a better job at work<br><b>His hot button:</b> he is afraid to speak and make mistakes<br><b>His time:</b> about once a week. He travels a lot.<br><b>His options:</b> Full-Access. A: 9 months. B: 12 months.",
+  start:"Start ▸", topTitle:"Jack's appointment", cont:"Continue",
+  noticeTitle:"NOTICE HOW…",
+  endKicker:"End of the appointment", endTitle:"What did you notice?",
+  endSub:"The Consultant never pushed Jack. She showed him the value, she stayed calm about the price, she made the choice feel safe, and she found his real doubt before she answered it. Here are the skills she used:",
+  replay:"Watch again",
   fs:{ enter:"Fullscreen", exit:"Exit fullscreen", newtab:"Open in a new tab", hint:"Press F11 to fill your screen" },
-  consultant:"Consultant", jack:"Jack", next:"Next ▸", finish:"Finish ▸", hear:"🔊", tapHint:"Tap Next to continue",
   steps:["Say it back","Give a choice","Present the price","Guarantee","Ask to start","Treat the objection","Buying signal"],
   techniques:[
-    "Partial close: say the goal back and get a \u201cyes\u201d",
+    "Partial close: say the goal back and get a “yes”",
     "Two options: one reaches the goal, one is a good start",
     "Present the price calmly, then stay quiet",
     "The guarantee: it shows there is no risk",
-    "Alternative close: \u201cthis week or next week?\u201d",
+    "Alternative close: “this week or next week?”",
     "Three Magic Steps: Accept and Respect, Question and Understand, Treat",
     "Hear the buying signal and help Jack choose"
-  ]
+  ],
+  lines:[
+    "“So Jack, your goal is to speak English with confidence in your new job, and once a week works around your travelling. Is that right?”",
+    "“Yes, exactly. I need to stop being so afraid of making mistakes when I speak.”",
+    "“I have two good options for you. The 12-month course takes you all the way to confident speaking. But because you said you have a deadline, the 9-month course is a strong start you can build on. Both of them work well around your travelling.”",
+    "“That flexibility is exactly what I need, with all the travelling I do.”",
+    "“The 12-month course includes everything I showed you. The small classes — Encounters, Social Clubs, plenty of conversation classes, your Coach and Teachers, and all your materials. The investment for all of this is $2,000.”",
+    "(She looks at Jack calmly, and says nothing at all.)",
+    "“...Right. Okay. That's a lot of money for me, to be honest with you.”",
+    "“You're right, it's a big investment in your future and I understand, it's a big decision. May I ask what you mean by a lot of money and what you were expecting? That's exactly why we give you a written guarantee. Follow the method, and if you don't reach your goal, we give your money back. You give us the time, and we take you there.”",
+    "“Hm, that does make me feel better, actually.”",
+    "“Wonderful. When would you like to start — this week or next week?”",
+    "“Well... honestly, it still feels too expensive for me.”",
+    "“I understand you, and price really matters in a big decision like this. A lot of people feel that way at first.”",
+    "“Can I ask what exactly you mean by too expensive?”",
+    "“Honestly, I don't earn that much yet. I'm not sure I can pay it all at once right now.”",
+    "“Thank you for being so open with me. That's not a problem at all. Let's look at our monthly payment options together, we'll find a solution. We can also find a course length that fits your budget, so you can still start now. How does that sound?”",
+    "“Okay, that sounds much better. Let's have a look.”",
+    "“Okay, I want to do it. I'm just not sure whether to pay monthly or finding a way of paying all at once because it is a lot cheaper.”",
+    "“Good question. It sounds like you're ready to start. Most people in your situation choose the monthly payment plan. It's also a good deal and just gives you more financial flexibility. Shall we set that up and get you started?”",
+    "“Yes, let's do it. Thanks for making this easy.”"
+  ],
+  caps:{
+    0:"<b>Partial close.</b> She says the goal back to Jack. She gets a “yes” before she shows the course.",
+    2:"<b>Two options.</b> One reaches his goal. One is a good start. Jack chooses, and both lead to starting.",
+    4:"<b>A calm price presentation.</b> She says “investment”, not “price”. She shows the full amount confidently and clearly.",
+    5:"<b>Stay quiet.</b> She lets Jack think. The first person to speak often loses. So she waits.",
+    7:"<b>The guarantee.</b> Now a big investment feels safe and sure.",
+    9:"<b>Alternative close.</b> Two easy answers, and both mean “yes”.",
+    11:"<b>Step 1 — Accept and Respect.</b> She takes his feeling seriously. She does not argue.",
+    12:"<b>Step 2 — Question and Understand.</b> She asks an open question to find the real doubt.",
+    14:"<b>Step 3 — Treat the objection.</b> His real doubt was paying a big amount all at once. So she offers payment options.",
+    16:"<b>Buying signal.</b> This is not an objection. Jack has decided. He needs help with one small choice.",
+    17:"<b>Help him choose, then close.</b> She helps with the small choice. Then she asks him to start."
+  }
+},
+
+/* ---------------------------------------------------------------- Italiano */
+it:{
+  consultant:"Consulente", jack:"Jack",
+  next:"Avanti ▸", finish:"Fine ▸", tapHint:"Tocca Avanti per continuare",
+  kicker:"Soluzione, chiusura e obiezioni · Guarda",
+  title:"Guarda una buona chiusura",
+  sub:"Osserva come questa Consulente tratta l'obiezione di Jack e chiude la vendita.",
+  intro:"Tocca Avanti per seguire il dialogo. Quando la Consulente usa una tecnica, una nota ti spiega qual è e perché funziona.",
+  persona:"<b>Jack · IT Manager · 34 anni · Livello 3</b><br><b>Il suo obiettivo:</b> parlare bene inglese e ottenere un lavoro migliore<br><b>Il suo punto sensibile:</b> ha paura di parlare e di sbagliare<br><b>Il suo tempo:</b> circa una volta a settimana. Viaggia molto.<br><b>Le sue opzioni:</b> Full-Access. A: 9 mesi. B: 12 mesi.",
+  start:"Inizia ▸", topTitle:"L'appuntamento di Jack", cont:"Continua",
+  noticeTitle:"NOTA COME…",
+  endKicker:"Fine dell'appuntamento", endTitle:"Che cosa hai notato?",
+  endSub:"La Consulente non ha mai messo pressione a Jack. Gli ha mostrato il valore, è rimasta tranquilla sul prezzo, ha reso la scelta sicura e ha trovato il suo vero dubbio prima di rispondere. Ecco le tecniche che ha usato:",
+  replay:"Guarda di nuovo",
+  fs:{ enter:"Schermo intero", exit:"Esci da schermo intero", newtab:"Apri in una nuova scheda", hint:"Premi F11 per riempire lo schermo" },
+  steps:["Riformula","Dai una scelta","Presenta il prezzo","Garanzia","Chiedi di iniziare","Tratta l'obiezione","Segnale d'acquisto"],
+  techniques:[
+    "Chiusura parziale: riformula l'obiettivo e ottieni un «sì»",
+    "Due opzioni: una raggiunge l'obiettivo, una è un buon inizio",
+    "Presenta il prezzo con calma, poi resta in silenzio",
+    "La garanzia: dimostra che non c'è alcun rischio",
+    "Chiusura alternativa: «questa settimana o la prossima?»",
+    "Tre Passi Magici: Accetta e Rispetta, Domanda e Comprendi, Tratta",
+    "Ascolta il segnale d'acquisto e aiuta Jack a scegliere"
+  ],
+  lines:[
+    "«Allora Jack, il suo obiettivo è parlare inglese con sicurezza nel suo nuovo lavoro, e una volta a settimana funziona con i suoi viaggi. È corretto?»",
+    "«Sì, esatto. Devo smettere di avere così paura di sbagliare quando parlo.»",
+    "«Ho due buone opzioni per lei. Il corso di 12 mesi la porta fino a parlare con sicurezza. Ma poiché mi ha detto di avere una scadenza, il corso di 9 mesi è un ottimo inizio su cui costruire. Entrambi funzionano bene con i suoi viaggi.»",
+    "«Quella flessibilità è proprio ciò che mi serve, con tutti i viaggi che faccio.»",
+    "«Il corso di 12 mesi include tutto quello che le ho mostrato. Le classi ridotte — Encounters, Social Club, tante lezioni di conversazione, il suo Coach e gli insegnanti, e tutti i materiali. L'investimento per tutto questo è di 2.000 $.»",
+    "(Guarda Jack con calma e non dice assolutamente nulla.)",
+    "«...Giusto. Va bene. È molta la cifra per me, a essere sincero con lei.»",
+    "«Ha ragione, è un grande investimento sul suo futuro e capisco, è una decisione importante. Posso chiederle che cosa intende per molti soldi e che cifra si aspettava? È proprio per questo che le diamo una garanzia scritta. Segua il metodo e, se non raggiunge il suo obiettivo, le restituiamo i soldi. Lei ci dà il tempo, e noi la portiamo fin là.»",
+    "«Mm, in effetti questo mi fa sentire meglio.»",
+    "«Perfetto. Quando le piacerebbe iniziare — questa settimana o la prossima?»",
+    "«Beh... sinceramente, mi sembra ancora troppo caro.»",
+    "«La capisco, e il prezzo conta davvero in una decisione così importante. Molte persone la pensano così all'inizio.»",
+    "«Posso chiederle che cosa intende esattamente con troppo caro?»",
+    "«Sinceramente, non guadagno ancora molto. Non sono sicuro di poter pagare tutto in una volta adesso.»",
+    "«Grazie per essere stato così sincero con me. Non è affatto un problema. Guardiamo insieme le opzioni di pagamento mensile, troveremo una soluzione. Possiamo anche trovare una durata del corso adatta al suo budget, così può iniziare comunque adesso. Che ne dice?»",
+    "«Va bene, suona molto meglio. Diamo un'occhiata.»",
+    "«Va bene, voglio farlo. Solo non so se pagare mensilmente o trovare un modo di pagare tutto in una volta, perché costa molto meno.»",
+    "«Ottima domanda. Sembra che sia pronto a iniziare. La maggior parte delle persone nella sua situazione sceglie il piano di pagamento mensile. È comunque una buona soluzione e le dà più flessibilità finanziaria. Lo impostiamo così e la facciamo iniziare?»",
+    "«Sì, facciamolo. Grazie per avermelo reso così semplice.»"
+  ],
+  caps:{
+    0:"<b>Chiusura parziale.</b> Riformula l'obiettivo di Jack. Ottiene un «sì» prima di mostrargli il corso.",
+    2:"<b>Due opzioni.</b> Una raggiunge il suo obiettivo. Una è un buon inizio. Sceglie Jack, ed entrambe portano a iniziare.",
+    4:"<b>Una presentazione del prezzo con calma.</b> Dice «investimento», non «prezzo». Mostra la cifra intera con sicurezza e chiarezza.",
+    5:"<b>Resta in silenzio.</b> Lascia pensare Jack. Chi parla per primo spesso perde. Così aspetta.",
+    7:"<b>La garanzia.</b> Ora un grande investimento sembra sicuro e certo.",
+    9:"<b>Chiusura alternativa.</b> Due risposte facili, ed entrambe significano «sì».",
+    11:"<b>Passo 1 — Accetta e Rispetta.</b> Prende sul serio ciò che prova. Non discute.",
+    12:"<b>Passo 2 — Domanda e Comprendi.</b> Fa una domanda aperta per trovare il vero dubbio.",
+    14:"<b>Passo 3 — Tratta l'obiezione.</b> Il suo vero dubbio era pagare una cifra grande in una volta sola. Così gli propone il pagamento rateale.",
+    16:"<b>Segnale d'acquisto.</b> Questa non è un'obiezione. Jack ha deciso. Ha bisogno di aiuto per una piccola scelta.",
+    17:"<b>Aiutalo a scegliere, poi chiudi.</b> Lo aiuta con la piccola scelta. Poi gli chiede di iniziare."
+  }
+},
+
+/* -------------------------------------------------------------- Português */
+pt:{
+  consultant:"Consultora", jack:"Jack",
+  next:"Seguinte ▸", finish:"Terminar ▸", tapHint:"Toque em Seguinte para continuar",
+  kicker:"Solução, fecho e objeções · Ver",
+  title:"Veja um bom fecho",
+  sub:"Veja como esta Consultora trata a objeção do Jack e fecha a venda.",
+  intro:"Toque em Seguinte para acompanhar a conversa. Quando a Consultora usa uma técnica, uma nota explica qual é e porque funciona.",
+  persona:"<b>Jack · Gestor de TI · 34 · Nível 3</b><br><b>O objetivo dele:</b> falar bem inglês e conseguir um trabalho melhor<br><b>O ponto sensível dele:</b> tem medo de falar e de errar<br><b>O tempo dele:</b> cerca de uma vez por semana. Viaja muito.<br><b>As opções dele:</b> Full-Access. A: 9 meses. B: 12 meses.",
+  start:"Começar ▸", topTitle:"A reunião do Jack", cont:"Continuar",
+  noticeTitle:"REPARE COMO…",
+  endKicker:"Fim da reunião", endTitle:"O que reparou?",
+  endSub:"A Consultora nunca pressionou o Jack. Mostrou-lhe o valor, manteve a calma quanto ao preço, fez com que a escolha parecesse segura e encontrou a verdadeira dúvida antes de a responder. Aqui estão as técnicas que usou:",
+  replay:"Ver outra vez",
+  fs:{ enter:"Ecrã inteiro", exit:"Sair do ecrã inteiro", newtab:"Abrir num novo separador", hint:"Prima F11 para preencher o ecrã" },
+  steps:["Reformular","Dar uma escolha","Apresentar o preço","Garantia","Pedir para começar","Tratar a objeção","Sinal de compra"],
+  techniques:[
+    "Fecho parcial: reformule o objetivo e obtenha um “sim”",
+    "Duas opções: uma alcança o objetivo, outra é um bom começo",
+    "Apresente o preço com calma e depois fique em silêncio",
+    "A garantia: mostra que não há risco",
+    "Fecho alternativo: “esta semana ou na próxima?”",
+    "Três Passos Mágicos: Aceitar e Respeitar, Perguntar e Compreender, Tratar",
+    "Ouça o sinal de compra e ajude o Jack a escolher"
+  ],
+  lines:[
+    "“Então, Jack, o seu objetivo é falar inglês com confiança no seu novo trabalho, e uma vez por semana funciona com as suas viagens. É isso?”",
+    "“Sim, exatamente. Preciso de deixar de ter tanto medo de errar quando falo.”",
+    "“Tenho duas boas opções para si. O curso de 12 meses leva-o até falar com confiança. Mas como me disse que tem um prazo, o curso de 9 meses é um começo forte sobre o qual pode construir. Ambos funcionam bem com as suas viagens.”",
+    "“Essa flexibilidade é exatamente o que preciso, com todas as viagens que faço.”",
+    "“O curso de 12 meses inclui tudo o que lhe mostrei. As turmas pequenas — Encounters, Social Clubs, muitas aulas de conversação, o seu Coach e os professores, e todos os materiais. O investimento para tudo isto é de 2.000 $.”",
+    "(Olha para o Jack com calma e não diz absolutamente nada.)",
+    "“...Certo. Está bem. É muito dinheiro para mim, para ser sincero consigo.”",
+    "“Tem razão, é um grande investimento no seu futuro e eu compreendo, é uma decisão importante. Posso perguntar o que quer dizer com muito dinheiro e que valor esperava? É exatamente por isso que lhe damos uma garantia escrita. Siga o método e, se não atingir o seu objetivo, devolvemos o seu dinheiro. O Jack dá-nos o tempo, e nós levamo-lo até lá.”",
+    "“Hm, isso na verdade deixa-me mais descansado.”",
+    "“Ótimo. Quando gostaria de começar — esta semana ou na próxima?”",
+    "“Bem... sinceramente, ainda me parece caro demais.”",
+    "“Eu compreendo-o, e o preço conta mesmo numa decisão grande como esta. Muitas pessoas sentem o mesmo no início.”",
+    "“Posso perguntar o que quer dizer exatamente com caro demais?”",
+    "“Sinceramente, ainda não ganho assim tanto. Não sei se consigo pagar tudo de uma vez agora.”",
+    "“Obrigada por ser tão sincero comigo. Não é problema nenhum. Vamos ver juntos as opções de pagamento mensal, vamos encontrar uma solução. Também podemos encontrar uma duração de curso que caiba no seu orçamento, para poder começar já. O que acha?”",
+    "“Está bem, isso soa muito melhor. Vamos ver.”",
+    "“Está bem, quero avançar. Só não sei se pago mensalmente ou se arranjo maneira de pagar tudo de uma vez, porque fica bem mais barato.”",
+    "“Boa pergunta. Parece que está pronto para começar. A maioria das pessoas na sua situação escolhe o plano de pagamento mensal. Também é uma boa solução e dá-lhe mais flexibilidade financeira. Tratamos disso e começamos?”",
+    "“Sim, vamos a isso. Obrigado por tornar isto tão fácil.”"
+  ],
+  caps:{
+    0:"<b>Fecho parcial.</b> Reformula o objetivo do Jack. Obtém um “sim” antes de lhe mostrar o curso.",
+    2:"<b>Duas opções.</b> Uma alcança o objetivo dele. Outra é um bom começo. O Jack escolhe, e ambas levam a começar.",
+    4:"<b>Uma apresentação calma do preço.</b> Diz “investimento”, não “preço”. Mostra o valor total com confiança e clareza.",
+    5:"<b>Fique em silêncio.</b> Deixa o Jack pensar. Quem fala primeiro costuma perder. Por isso espera.",
+    7:"<b>A garantia.</b> Agora um grande investimento parece seguro e certo.",
+    9:"<b>Fecho alternativo.</b> Duas respostas fáceis, e ambas significam “sim”.",
+    11:"<b>Passo 1 — Aceitar e Respeitar.</b> Leva o que ele sente a sério. Não discute.",
+    12:"<b>Passo 2 — Perguntar e Compreender.</b> Faz uma pergunta aberta para encontrar a verdadeira dúvida.",
+    14:"<b>Passo 3 — Tratar a objeção.</b> A verdadeira dúvida dele era pagar um valor grande de uma só vez. Por isso oferece o pagamento mensal.",
+    16:"<b>Sinal de compra.</b> Isto não é uma objeção. O Jack já decidiu. Precisa de ajuda numa pequena escolha.",
+    17:"<b>Ajude-o a escolher e depois feche.</b> Ajuda-o na pequena escolha. Depois pede-lhe para começar."
+  }
+},
+
+/* ---------------------------------------------------------------- Español */
+es:{
+  consultant:"Consultora", jack:"Jack",
+  next:"Siguiente ▸", finish:"Finalizar ▸", tapHint:"Toca Siguiente para continuar",
+  kicker:"Solución, cierre y objeciones · Mira",
+  title:"Mira un buen cierre",
+  sub:"Observa cómo esta Consultora trata la objeción de Jack y cierra la venta.",
+  intro:"Toca Siguiente para seguir la conversación. Cuando la Consultora usa una técnica, una nota te explica cuál es y por qué funciona.",
+  persona:"<b>Jack · Responsable de TI · 34 · Nivel 3</b><br><b>Su objetivo:</b> hablar bien inglés y conseguir un trabajo mejor<br><b>Su punto sensible:</b> tiene miedo de hablar y de equivocarse<br><b>Su tiempo:</b> más o menos una vez por semana. Viaja mucho.<br><b>Sus opciones:</b> Full-Access. A: 9 meses. B: 12 meses.",
+  start:"Empezar ▸", topTitle:"La cita de Jack", cont:"Continuar",
+  noticeTitle:"FÍJATE CÓMO…",
+  endKicker:"Fin de la cita", endTitle:"¿Qué has notado?",
+  endSub:"La Consultora nunca presionó a Jack. Le mostró el valor, mantuvo la calma con el precio, hizo que la decisión resultara segura y encontró su duda real antes de responderla. Estas son las técnicas que usó:",
+  replay:"Ver otra vez",
+  fs:{ enter:"Pantalla completa", exit:"Salir de pantalla completa", newtab:"Abrir en una pestaña nueva", hint:"Pulsa F11 para ocupar toda la pantalla" },
+  steps:["Repetir lo dicho","Dar una opción","Presentar el precio","Garantía","Pedir que empiece","Tratar la objeción","Señal de compra"],
+  techniques:[
+    "Cierre parcial: repite el objetivo y consigue un «sí»",
+    "Dos opciones: una alcanza el objetivo, otra es un buen comienzo",
+    "Presenta el precio con calma y luego quédate en silencio",
+    "La garantía: demuestra que no hay riesgo",
+    "Cierre alternativo: «¿esta semana o la que viene?»",
+    "Tres Pasos Mágicos: Aceptar y Respetar, Preguntar y Comprender, Tratar",
+    "Escucha la señal de compra y ayuda a Jack a elegir"
+  ],
+  lines:[
+    "«Entonces, Jack, tu objetivo es hablar inglés con confianza en tu nuevo trabajo, y una vez por semana encaja con tus viajes. ¿Es así?»",
+    "«Sí, exacto. Necesito dejar de tener tanto miedo a equivocarme cuando hablo.»",
+    "«Tengo dos buenas opciones para ti. El curso de 12 meses te lleva hasta hablar con confianza. Pero como me has dicho que tienes una fecha límite, el curso de 9 meses es un buen comienzo sobre el que construir. Los dos encajan bien con tus viajes.»",
+    "«Esa flexibilidad es justo lo que necesito, con todo lo que viajo.»",
+    "«El curso de 12 meses incluye todo lo que te he enseñado. Las clases reducidas — Encounters, Social Clubs, muchas clases de conversación, tu Coach y los profesores, y todos tus materiales. La inversión por todo esto es de 2.000 $.»",
+    "(Mira a Jack con calma y no dice absolutamente nada.)",
+    "«...Ya. Vale. Es mucho dinero para mí, si te soy sincero.»",
+    "«Tienes razón, es una gran inversión en tu futuro y lo entiendo, es una decisión importante. ¿Puedo preguntarte a qué te refieres con mucho dinero y qué cifra esperabas? Precisamente por eso te damos una garantía por escrito. Sigue el método y, si no alcanzas tu objetivo, te devolvemos el dinero. Tú nos das el tiempo, y nosotros te llevamos hasta allí.»",
+    "«Mm, la verdad es que eso me tranquiliza.»",
+    "«Estupendo. ¿Cuándo te gustaría empezar — esta semana o la que viene?»",
+    "«Bueno... sinceramente, me sigue pareciendo demasiado caro.»",
+    "«Te entiendo, y el precio importa de verdad en una decisión tan importante. Mucha gente siente lo mismo al principio.»",
+    "«¿Puedo preguntarte qué quieres decir exactamente con demasiado caro?»",
+    "«Sinceramente, todavía no gano tanto. No sé si puedo pagarlo todo de una vez ahora mismo.»",
+    "«Gracias por ser tan sincero conmigo. No es ningún problema. Vamos a ver juntos las opciones de pago mensual, encontraremos una solución. También podemos buscar una duración de curso que encaje con tu presupuesto, para que puedas empezar ya. ¿Qué te parece?»",
+    "«Vale, eso suena mucho mejor. Vamos a verlo.»",
+    "«Vale, quiero hacerlo. Solo que no sé si pagar cada mes o buscar la manera de pagarlo todo de una vez, porque sale mucho más barato.»",
+    "«Buena pregunta. Parece que estás listo para empezar. La mayoría de las personas en tu situación elige el plan de pago mensual. También es una buena opción y te da más flexibilidad económica. ¿Lo dejamos así y empezamos?»",
+    "«Sí, hagámoslo. Gracias por ponérmelo tan fácil.»"
+  ],
+  caps:{
+    0:"<b>Cierre parcial.</b> Le repite a Jack su objetivo. Consigue un «sí» antes de enseñarle el curso.",
+    2:"<b>Dos opciones.</b> Una alcanza su objetivo. Otra es un buen comienzo. Elige Jack, y las dos llevan a empezar.",
+    4:"<b>Una presentación tranquila del precio.</b> Dice «inversión», no «precio». Muestra la cifra completa con seguridad y claridad.",
+    5:"<b>Quédate en silencio.</b> Deja pensar a Jack. Quien habla primero suele perder. Por eso espera.",
+    7:"<b>La garantía.</b> Ahora una gran inversión parece segura y sin riesgo.",
+    9:"<b>Cierre alternativo.</b> Dos respuestas fáciles, y las dos significan «sí».",
+    11:"<b>Paso 1 — Aceptar y Respetar.</b> Se toma en serio lo que siente. No discute.",
+    12:"<b>Paso 2 — Preguntar y Comprender.</b> Hace una pregunta abierta para encontrar la duda real.",
+    14:"<b>Paso 3 — Tratar la objeción.</b> Su duda real era pagar una cantidad grande de una sola vez. Por eso le ofrece el pago mensual.",
+    16:"<b>Señal de compra.</b> Esto no es una objeción. Jack ya ha decidido. Necesita ayuda con una pequeña elección.",
+    17:"<b>Ayúdale a elegir y luego cierra.</b> Le ayuda con la pequeña elección. Después le pide que empiece."
+  }
+},
+
+/* --------------------------------------------------------------- Français */
+fr:{
+  consultant:"Conseillère", jack:"Jack",
+  next:"Suivant ▸", finish:"Terminer ▸", tapHint:"Touchez Suivant pour continuer",
+  kicker:"Solution, conclusion et objections · Regarder",
+  title:"Regardez une bonne conclusion",
+  sub:"Observez comment cette Conseillère traite l'objection de Jack et conclut la vente.",
+  intro:"Touchez Suivant pour suivre la conversation. Quand la Conseillère utilise une technique, une note vous explique laquelle et pourquoi elle fonctionne.",
+  persona:"<b>Jack · Responsable informatique · 34 ans · Niveau 3</b><br><b>Son objectif :</b> bien parler anglais et obtenir un meilleur poste<br><b>Son point sensible :</b> il a peur de parler et de faire des fautes<br><b>Son temps :</b> environ une fois par semaine. Il voyage beaucoup.<br><b>Ses options :</b> Full-Access. A : 9 mois. B : 12 mois.",
+  start:"Commencer ▸", topTitle:"Le rendez-vous de Jack", cont:"Continuer",
+  noticeTitle:"REMARQUEZ COMMENT…",
+  endKicker:"Fin du rendez-vous", endTitle:"Qu'avez-vous remarqué ?",
+  endSub:"La Conseillère n'a jamais forcé Jack. Elle lui a montré la valeur, elle est restée calme sur le prix, elle a rendu le choix rassurant, et elle a trouvé son vrai doute avant d'y répondre. Voici les techniques qu'elle a utilisées :",
+  replay:"Revoir",
+  fs:{ enter:"Plein écran", exit:"Quitter le plein écran", newtab:"Ouvrir dans un nouvel onglet", hint:"Appuyez sur F11 pour remplir l'écran" },
+  steps:["Reformuler","Donner un choix","Présenter le prix","Garantie","Proposer de commencer","Traiter l'objection","Signal d'achat"],
+  techniques:[
+    "Conclusion partielle : reformulez l'objectif et obtenez un « oui »",
+    "Deux options : l'une atteint l'objectif, l'autre est un bon début",
+    "Présentez le prix calmement, puis gardez le silence",
+    "La garantie : elle montre qu'il n'y a aucun risque",
+    "Conclusion alternative : « cette semaine ou la semaine prochaine ? »",
+    "Trois Étapes Magiques : Accepter et Respecter, Questionner et Comprendre, Traiter",
+    "Écoutez le signal d'achat et aidez Jack à choisir"
+  ],
+  lines:[
+    "« Alors Jack, votre objectif est de parler anglais avec assurance dans votre nouveau poste, et une fois par semaine s'accorde avec vos déplacements. C'est bien cela ? »",
+    "« Oui, exactement. Je dois arrêter d'avoir autant peur de faire des fautes quand je parle. »",
+    "« J'ai deux bonnes options pour vous. Le cours de 12 mois vous mène jusqu'à parler avec assurance. Mais comme vous m'avez dit que vous aviez une échéance, le cours de 9 mois est un bon début sur lequel construire. Les deux s'accordent bien avec vos déplacements. »",
+    "« Cette souplesse, c'est exactement ce qu'il me faut, avec tous mes déplacements. »",
+    "« Le cours de 12 mois comprend tout ce que je vous ai montré. Les petits groupes — Encounters, Social Clubs, de nombreux cours de conversation, votre Coach et les professeurs, et tous vos supports. L'investissement pour l'ensemble est de 2 000 $. »",
+    "(Elle regarde Jack calmement et ne dit absolument rien.)",
+    "« ...D'accord. Bon. Cela fait beaucoup d'argent pour moi, pour être honnête avec vous. »",
+    "« Vous avez raison, c'est un investissement important pour votre avenir et je comprends, c'est une grande décision. Puis-je vous demander ce que vous entendez par beaucoup d'argent et quel montant vous attendiez ? C'est précisément pour cela que nous vous donnons une garantie écrite. Suivez la méthode et, si vous n'atteignez pas votre objectif, nous vous remboursons. Vous nous donnez le temps, et nous vous y menons. »",
+    "« Hm, cela me rassure, en fait. »",
+    "« Parfait. Quand souhaiteriez-vous commencer — cette semaine ou la semaine prochaine ? »",
+    "« Eh bien... honnêtement, cela me paraît encore trop cher. »",
+    "« Je vous comprends, et le prix compte vraiment dans une décision aussi importante. Beaucoup de personnes ressentent cela au début. »",
+    "« Puis-je vous demander ce que vous entendez exactement par trop cher ? »",
+    "« Honnêtement, je ne gagne pas encore tant que ça. Je ne suis pas sûr de pouvoir tout payer en une fois maintenant. »",
+    "« Merci d'être aussi franc avec moi. Ce n'est absolument pas un problème. Regardons ensemble nos options de paiement mensuel, nous trouverons une solution. Nous pouvons aussi trouver une durée de cours adaptée à votre budget, pour que vous puissiez commencer dès maintenant. Qu'en dites-vous ? »",
+    "« D'accord, cela me paraît bien mieux. Regardons cela. »",
+    "« D'accord, je veux le faire. Je ne sais pas seulement s'il vaut mieux payer tous les mois ou trouver un moyen de tout payer en une fois, parce que c'est bien moins cher. »",
+    "« Bonne question. Vous semblez prêt à commencer. La plupart des personnes dans votre situation choisissent le paiement mensuel. C'est aussi une bonne solution et cela vous laisse plus de souplesse financière. On part là-dessus et on vous lance ? »",
+    "« Oui, allons-y. Merci de me l'avoir rendu aussi simple. »"
+  ],
+  caps:{
+    0:"<b>Conclusion partielle.</b> Elle reformule l'objectif de Jack. Elle obtient un « oui » avant de lui montrer le cours.",
+    2:"<b>Deux options.</b> L'une atteint son objectif. L'autre est un bon début. C'est Jack qui choisit, et les deux mènent à commencer.",
+    4:"<b>Une présentation calme du prix.</b> Elle dit « investissement », pas « prix ». Elle annonce le montant complet avec assurance et clarté.",
+    5:"<b>Gardez le silence.</b> Elle laisse Jack réfléchir. Celui qui parle le premier perd souvent. Alors elle attend.",
+    7:"<b>La garantie.</b> Maintenant, un investissement important paraît sûr et certain.",
+    9:"<b>Conclusion alternative.</b> Deux réponses faciles, et les deux veulent dire « oui ».",
+    11:"<b>Étape 1 — Accepter et Respecter.</b> Elle prend son ressenti au sérieux. Elle ne discute pas.",
+    12:"<b>Étape 2 — Questionner et Comprendre.</b> Elle pose une question ouverte pour trouver le vrai doute.",
+    14:"<b>Étape 3 — Traiter l'objection.</b> Son vrai doute était de payer une grosse somme en une fois. Elle lui propose donc le paiement mensuel.",
+    16:"<b>Signal d'achat.</b> Ce n'est pas une objection. Jack a décidé. Il a besoin d'aide pour un petit choix.",
+    17:"<b>Aidez-le à choisir, puis concluez.</b> Elle l'aide sur le petit choix. Puis elle lui propose de commencer."
+  }
+},
+
+/* ----------------------------------------------------------------- العربية */
+ar:{
+  consultant:"المستشارة", jack:"جاك",
+  next:"التالي ◂", finish:"إنهاء ◂", tapHint:"اضغط على التالي للمتابعة",
+  kicker:"الحل والإغلاق والاعتراضات · شاهد",
+  title:"شاهد إغلاقًا جيدًا",
+  sub:"انظر كيف تعالج هذه المستشارة اعتراض جاك وتُتم عملية البيع.",
+  intro:"اضغط على التالي لمتابعة الحوار. عندما تستخدم المستشارة مهارة، تشرح لك ملاحظة ما هي ولماذا تنجح.",
+  persona:"<b>جاك · مدير تقنية معلومات · ٣٤ سنة · المستوى ٣</b><br><b>هدفه:</b> أن يتحدث الإنجليزية جيدًا ويحصل على عمل أفضل<br><b>نقطته الحساسة:</b> يخاف من التحدث ومن ارتكاب الأخطاء<br><b>وقته:</b> مرة واحدة أسبوعيًا تقريبًا. يسافر كثيرًا.<br><b>خياراته:</b> Full-Access. أ: ٩ أشهر. ب: ١٢ شهرًا.",
+  start:"ابدأ ◂", topTitle:"موعد جاك", cont:"متابعة",
+  noticeTitle:"لاحظ كيف…",
+  endKicker:"نهاية الموعد", endTitle:"ماذا لاحظت؟",
+  endSub:"لم تضغط المستشارة على جاك في أي لحظة. أظهرت له القيمة، وبقيت هادئة عند ذكر السعر، وجعلت القرار يبدو آمنًا، ووجدت شكّه الحقيقي قبل أن تجيب عنه. وهذه هي المهارات التي استخدمتها:",
+  replay:"شاهد مرة أخرى",
+  fs:{ enter:"ملء الشاشة", exit:"إنهاء ملء الشاشة", newtab:"فتح في تبويب جديد", hint:"اضغط F11 لملء الشاشة" },
+  steps:["أعد صياغة الهدف","اعرض خيارين","اعرض السعر","الضمان","اطلب البدء","عالج الاعتراض","إشارة الشراء"],
+  techniques:[
+    "إغلاق جزئي: أعد صياغة الهدف واحصل على «نعم»",
+    "خياران: أحدهما يحقق الهدف، والآخر بداية جيدة",
+    "اعرض السعر بهدوء ثم التزم الصمت",
+    "الضمان: يثبت أنه لا توجد أي مخاطرة",
+    "الإغلاق البديل: «هذا الأسبوع أم الأسبوع القادم؟»",
+    "الخطوات السحرية الثلاث: تقبّل واحترم، اسأل وافهم، عالج",
+    "أنصت إلى إشارة الشراء وساعد جاك على الاختيار"
+  ],
+  lines:[
+    "«إذن يا جاك، هدفك أن تتحدث الإنجليزية بثقة في عملك الجديد، ومرة واحدة أسبوعيًا تناسب سفرك. هل هذا صحيح؟»",
+    "«نعم، بالضبط. أريد أن أتوقف عن الخوف الشديد من ارتكاب الأخطاء عندما أتحدث.»",
+    "«لديّ خياران جيدان لك. دورة الاثني عشر شهرًا تأخذك حتى التحدث بثقة. لكن بما أنك ذكرت أن لديك موعدًا نهائيًا، فإن دورة التسعة أشهر بداية قوية يمكنك البناء عليها. وكلتاهما تناسبان سفرك.»",
+    "«هذه المرونة هي بالضبط ما أحتاجه، مع كل هذا السفر.»",
+    "«دورة الاثني عشر شهرًا تشمل كل ما عرضته عليك. الصفوف الصغيرة — Encounters، والنوادي الاجتماعية، والكثير من حصص المحادثة، ومدربك ومعلميك، وكل موادك الدراسية. الاستثمار في كل هذا هو ٢٬٠٠٠ دولار.»",
+    "(تنظر إلى جاك بهدوء ولا تقول شيئًا على الإطلاق.)",
+    "«...حسنًا. نعم. هذا مبلغ كبير بالنسبة لي، لأكون صادقًا معك.»",
+    "«أنت محق، إنه استثمار كبير في مستقبلك وأنا أتفهم، إنه قرار مهم. هل لي أن أسألك ماذا تقصد بمبلغ كبير، وما المبلغ الذي كنت تتوقعه؟ لهذا السبب بالذات نمنحك ضمانًا مكتوبًا. اتبع الطريقة، وإن لم تصل إلى هدفك نُعيد إليك أموالك. أنت تمنحنا الوقت، ونحن نوصلك إلى هناك.»",
+    "«همم، هذا يريحني فعلًا.»",
+    "«ممتاز. متى تود أن تبدأ — هذا الأسبوع أم الأسبوع القادم؟»",
+    "«حسنًا... بصراحة، ما زال يبدو لي غاليًا جدًا.»",
+    "«أتفهمك، والسعر مهم فعلًا في قرار كبير كهذا. كثير من الناس يشعرون بذلك في البداية.»",
+    "«هل لي أن أسألك ماذا تقصد تحديدًا بغالٍ جدًا؟»",
+    "«بصراحة، دخلي ليس كبيرًا بعد. لست متأكدًا من قدرتي على دفع المبلغ كاملًا دفعة واحدة الآن.»",
+    "«شكرًا لصراحتك معي. هذه ليست مشكلة على الإطلاق. لننظر معًا في خيارات الدفع الشهري، وسنجد حلًا. ويمكننا أيضًا أن نجد مدة دورة تناسب ميزانيتك، حتى تتمكن من البدء الآن. ما رأيك؟»",
+    "«حسنًا، هذا يبدو أفضل بكثير. لنلقِ نظرة.»",
+    "«حسنًا، أريد أن أبدأ. لكنني فقط غير متأكد: أدفع شهريًا أم أجد طريقة لدفع المبلغ كاملًا دفعة واحدة، لأنه أرخص بكثير.»",
+    "«سؤال جيد. يبدو أنك مستعد للبدء. معظم من هم في وضعك يختارون خطة الدفع الشهري. وهي أيضًا خيار جيد وتمنحك مرونة مالية أكبر. هل نرتّب الأمر على هذا الأساس ونبدأ؟»",
+    "«نعم، لنفعل ذلك. شكرًا لأنك جعلت الأمر بهذه السهولة.»"
+  ],
+  caps:{
+    0:"<b>إغلاق جزئي.</b> تعيد صياغة هدف جاك. وتحصل على «نعم» قبل أن تعرض عليه الدورة.",
+    2:"<b>خياران.</b> أحدهما يحقق هدفه، والآخر بداية جيدة. جاك هو من يختار، وكلاهما يؤدي إلى البدء.",
+    4:"<b>عرض هادئ للسعر.</b> تقول «استثمار» لا «سعر». وتذكر المبلغ كاملًا بثقة ووضوح.",
+    5:"<b>التزم الصمت.</b> تترك لجاك فرصة التفكير. من يتكلم أولًا يخسر غالبًا. لذلك تنتظر.",
+    7:"<b>الضمان.</b> الآن يبدو الاستثمار الكبير آمنًا ومضمونًا.",
+    9:"<b>الإغلاق البديل.</b> إجابتان سهلتان، وكلتاهما تعني «نعم».",
+    11:"<b>الخطوة ١ — تقبّل واحترم.</b> تأخذ شعوره على محمل الجد. ولا تجادله.",
+    12:"<b>الخطوة ٢ — اسأل وافهم.</b> تطرح سؤالًا مفتوحًا لتصل إلى الشك الحقيقي.",
+    14:"<b>الخطوة ٣ — عالج الاعتراض.</b> كان شكّه الحقيقي هو دفع مبلغ كبير دفعة واحدة. لذلك تعرض عليه الدفع الشهري.",
+    16:"<b>إشارة شراء.</b> هذا ليس اعتراضًا. جاك قرر بالفعل. هو يحتاج مساعدة في اختيار صغير.",
+    17:"<b>ساعده على الاختيار ثم أغلق.</b> تساعده في الاختيار الصغير. ثم تطلب منه أن يبدأ."
+  }
+}
+
 };
-const SCRIPT = [
-  {phase:0,who:'con',text:"\u201cSo Jack, your goal is to speak English with confidence in your new job, and once a week works around your travelling. Is that right?\u201d",
-   chip:{kind:'',label:'<b>Partial close.</b> She says the goal back to Jack. She gets a \u201cyes\u201d before she shows the course.'}},
-  {phase:0,who:'jack',text:"\u201cYes, exactly. I need to stop being so afraid of making mistakes when I speak.\u201d"},
-  {phase:1,who:'con',text:"\u201cI have two good options for you. The 12-month course takes you all the way to confident speaking. But because you said you have a deadline, the 9-month course is a strong start you can build on. Both of them work well around your travelling.\u201d",
-   chip:{kind:'',label:'<b>Two options.</b> One reaches his goal. One is a good start. Jack chooses, and both lead to starting.'}},
-  {phase:1,who:'jack',text:"\u201cThat flexibility is exactly what I need, with all the travelling I do.\u201d"},
-  {phase:2,who:'con',text:"\u201cThe 12-month course includes everything I showed you. The small classes \u2014 Encounters, Social Clubs, plenty of conversation classes, your Coach and Teachers, and all your materials. The investment for all of this is $2,000.\u201d",
-   chip:{kind:'',label:'<b>A calm price presentation.</b> She says \u201cinvestment\u201d, not \u201cprice\u201d. She shows the full amount confidently and clearly.'}},
-  {phase:2,who:'con',text:"(She looks at Jack calmly, and says nothing at all.)",
-   chip:{kind:'',label:'<b>Stay quiet.</b> She lets Jack think. The first person to speak often loses. So she waits.'}},
-  {phase:2,who:'jack',text:"\u201c...Right. Okay. That's a lot of money for me, to be honest with you.\u201d"},
-  {phase:3,who:'con',text:"\u201cYou're right, it's a big investment in your future and I understand, it's a big decision. May I ask what you mean by a lot of money and what you were expecting? That's exactly why we give you a written guarantee. Follow the method, and if you don't reach your goal, we give your money back. You give us the time, and we take you there.\u201d",
-   chip:{kind:'',label:'<b>The guarantee.</b> Now a big investment feels safe and sure.'}},
-  {phase:3,who:'jack',text:"\u201cHm, that does make me feel better, actually.\u201d"},
-  {phase:4,who:'con',text:"\u201cWonderful. When would you like to start \u2014 this week or next week?\u201d",
-   chip:{kind:'',label:'<b>Alternative close.</b> Two easy answers, and both mean \u201cyes\u201d.'}},
-  {phase:4,who:'jack',text:"\u201cWell... honestly, it still feels too expensive for me.\u201d"},
-  {phase:5,who:'con',text:"\u201cI understand you, and price really matters in a big decision like this. A lot of people feel that way at first.\u201d",
-   chip:{kind:'step1',label:'<b>Step 1 \u2014 Accept and Respect.</b> She takes his feeling seriously. She does not argue.'}},
-  {phase:5,who:'con',text:"\u201cCan I ask what exactly you mean by too expensive?\u201d",
-   chip:{kind:'step2',label:'<b>Step 2 \u2014 Question and Understand.</b> She asks an open question to find the real doubt.'}},
-  {phase:5,who:'jack',text:"\u201cHonestly, I don't earn that much yet. I'm not sure I can pay it all at once right now.\u201d"},
-  {phase:5,who:'con',text:"\u201cThank you for being so open with me. That's not a problem at all. Let's look at our monthly payment options together, we'll find a solution. We can also find a course length that fits your budget, so you can still start now. How does that sound?\u201d",
-   chip:{kind:'step3',label:'<b>Step 3 \u2014 Treat the objection.</b> His real doubt was paying a big amount all at once. So she offers payment options.'}},
-  {phase:5,who:'jack',text:"\u201cOkay, that sounds much better. Let's have a look.\u201d"},
-  {phase:6,who:'jack',text:"\u201cOkay, I want to do it. I'm just not sure whether to pay monthly or finding a way of paying all at once because it is a lot cheaper.\u201d",
-   chip:{kind:'',label:'<b>Buying signal.</b> This is not an objection. Jack has decided. He needs help with one small choice.'}},
-  {phase:6,who:'con',text:"\u201cGood question. It sounds like you're ready to start. Most people in your situation choose the monthly payment plan. It's also a good deal and just gives you more financial flexibility. Shall we set that up and get you started?\u201d",
-   chip:{kind:'',label:'<b>Help him choose, then close.</b> She helps with the small choice. Then she asks him to start.'}},
-  {phase:6,who:'jack',text:"\u201cYes, let's do it. Thanks for making this easy.\u201d"}
-];
+
+const LANG_NAMES={en:"English",it:"Italiano",pt:"Português",es:"Español",fr:"Français",ar:"العربية"};
+const RTL=["ar"];
+
+function normalizeLang(l){
+  if(!l) return "en";
+  l=String(l).toLowerCase();
+  if(I18N[l]) return l;
+  const base=l.split("-")[0];
+  return I18N[base]?base:"en";
+}
+/* ?lang= wins, then the browser, then English. Switching reloads with a new
+   ?lang= rather than re-rendering in place — the activity is stateful and a
+   half-rendered language swap is a worse bug than a reload. */
+const LANG=normalizeLang(new URLSearchParams(location.search).get("lang")||navigator.language);
+document.documentElement.lang=LANG;
+document.documentElement.dir=RTL.indexOf(LANG)>=0?"rtl":"ltr";
+
+const UI=I18N[LANG];
+/* rebuild the beat list the player expects from shared structure + this
+   language's text */
+const SCRIPT=BEATS.map((b,i)=>{
+  const o={phase:b.phase,who:b.who===1?"con":"jack",text:UI.lines[i]};
+  if(b.cap&&UI.caps[i]) o.chip={kind:"",label:UI.caps[i]};
+  return o;
+});
 /* =========================================================================
    ADAPTER — UI + SCRIPT above  ->  STR / LINES / NOTICES below.
 
@@ -266,27 +689,16 @@ const firstOf = {}, lastOf = {};
 SCRIPT.forEach((b,i)=>{ if(!(b.phase in firstOf)) firstOf[b.phase]=i; lastOf[b.phase]=i; });
 
 const STR = {
-  kicker:"Solution, Closing & Objections · Watch",
-  title:"Watch a good close",
-  sub:"Take a look at how this Consultant treats Jack's objection and closes the sale.",
-  intro:"Tap Next to follow the talk. When the Consultant uses a skill, a note tells you what it is and why it works.",
-  persona:"<b>Jack · IT Manager · 34 · Level 3</b><br>"+
-          "<b>His goal:</b> to speak English well and get a better job at work<br>"+
-          "<b>His hot button:</b> he is afraid to speak and make mistakes<br>"+
-          "<b>His time:</b> about once a week. He travels a lot.<br>"+
-          "<b>His options:</b> Full-Access. A: 9 months. B: 12 months.",
-  start:"Start ▸",
-  topTitle:"Jack's appointment",
+  kicker:UI.kicker, title:UI.title, sub:UI.sub, intro:UI.intro, persona:UI.persona,
+  start:UI.start, topTitle:UI.topTitle,
   nameJack:UI.jack, nameCon:UI.consultant,
   spJack:UI.jack,   spCon:UI.consultant,
-  next:UI.next, finish:UI.finish, cont:"Continue",
+  next:UI.next, finish:UI.finish, cont:UI.cont,
   hintTap:UI.tapHint,
-  noticeTitle:"NOTICE HOW…",
-  endKicker:"End of the appointment",
-  endTitle:"What did you notice?",
-  endSub:"The Consultant never pushed Jack. She showed him the value, she stayed calm about the price, she made the choice feel safe, and she found his real doubt before she answered it. Here are the skills she used:",
+  noticeTitle:UI.noticeTitle,
+  endKicker:UI.endKicker, endTitle:UI.endTitle, endSub:UI.endSub,
   endBullets:UI.techniques,
-  replay:"Watch again",
+  replay:UI.replay,
   phases:UI.steps
 };
 
@@ -489,6 +901,19 @@ if(fsBtn) fsBtn.addEventListener("click", toggleFullscreen);
   document.addEventListener(ev, () => { syncFsLabel(); fitStage(); }));
 addEventListener("resize", fitStage);
 syncFsLabel(); fitStage();
+
+/* ----- language switcher ----- */
+(function(){
+  const sel=document.getElementById("langsel"); if(!sel) return;
+  Object.keys(I18N).forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c; o.textContent=LANG_NAMES[c]||c; if(c===LANG) o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change",()=>{
+    const u=new URL(location.href); u.searchParams.set("lang",sel.value); location.href=u.toString();
+  });
+})();
 </script>
 </body>
 </html>
