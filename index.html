@@ -17,6 +17,10 @@
     --sky:#dcebf9; --paper:#f6f9fd; --ink:#132441; --muted:#5a6b85;
     --con:#002856; --jack:#ffffff; --jackink:#132441;
     --panel-border:#101828;
+    /* fullscreen affordance -- shared verbatim with the Do section. Player
+       chrome, so it is the one component that does NOT take on this
+       section's comic vocabulary. See STYLE_GUIDE.md. */
+    --fs-green:#127A47; --fs-green-deep:#0D5F37;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -138,16 +142,22 @@
      shadow, press-to-squash. A direct child of .stage at z-index 25, NOT in
      the topbar: the intro and end .screen overlays sit at z-index 20 and would
      bury a topbar button on exactly the screens a stuck learner needs it. */
-  .fs-btn{position:absolute;top:10px;inset-inline-end:14px;z-index:25;
-    display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 12px;
-    background:var(--sky);color:var(--navy);
-    border:2px solid var(--panel-border);border-radius:999px;
-    box-shadow:2px 2px 0 rgba(0,0,0,.28);
-    font-family:inherit;font-size:11.5px;font-weight:700;white-space:nowrap;cursor:pointer}
-  .fs-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,.28)}
+  /* Fullscreen button -- centred at the top of the stage and deliberately loud.
+     z-index sits above .screen (20) so it is reachable from the intro screen,
+     before the learner has started. Solid green rather than the comic
+     vocabulary, so it reads as player chrome rather than part of the story. */
+  .fs-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
+    display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 16px;
+    background:var(--fs-green);color:#fff;
+    border:0;border-radius:999px;
+    box-shadow:0 2px 10px rgba(0,0,0,.45);
+    font-family:inherit;font-size:12.5px;font-weight:800;letter-spacing:.02em;
+    white-space:nowrap;cursor:pointer;transition:background .15s,box-shadow .15s}
+  .fs-btn:hover{background:var(--fs-green-deep)}
+  .fs-btn:active{transform:translateX(-50%) translateY(1px)}
   .fs-btn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
-  .fs-btn.is-on{background:rgba(255,255,255,.14);color:#fff;
-    border-color:rgba(255,255,255,.4);box-shadow:none}
+  /* once fullscreen, it has done its job -- recede into the navy topbar */
+  .fs-btn.is-on{background:rgba(255,255,255,.14);color:#fff;box-shadow:none}
 
   /* language switcher — lives on the intro screen, where there is room and
      where a learner chooses once. ?lang= remains the primary mechanism for
@@ -289,7 +299,7 @@ en:{
   endKicker:"End of the appointment", endTitle:"What did you notice?",
   endSub:"The Consultant never pushed Jack. She showed him the value, she stayed calm about the price, she made the choice feel safe, and she found his real doubt before she answered it. Here are the skills she used:",
   replay:"Watch again",
-  fs:{ enter:"Fullscreen", exit:"Exit fullscreen", newtab:"Open in a new tab", hint:"Press F11 to fill your screen" },
+  fs:{ enter:"Fullscreen", exit:"Exit fullscreen", hint:"Press F11 to fill your screen" },
   steps:["Say it back","Give a choice","Present the price","Guarantee","Ask to start","Treat the objection","Buying signal"],
   techniques:[
     "Partial close: say the goal back and get a “yes”",
@@ -350,7 +360,7 @@ it:{
   endKicker:"Fine dell'appuntamento", endTitle:"Che cosa hai notato?",
   endSub:"La Consulente non ha mai messo pressione a Jack. Gli ha mostrato il valore, è rimasta tranquilla sul prezzo, ha reso la scelta sicura e ha trovato il suo vero dubbio prima di rispondere. Ecco le tecniche che ha usato:",
   replay:"Guarda di nuovo",
-  fs:{ enter:"Schermo intero", exit:"Esci da schermo intero", newtab:"Apri in una nuova scheda", hint:"Premi F11 per riempire lo schermo" },
+  fs:{ enter:"Schermo intero", exit:"Esci da schermo intero", hint:"Premi F11 per riempire lo schermo" },
   steps:["Riformula","Dai una scelta","Presenta il prezzo","Garanzia","Chiedi di iniziare","Tratta l'obiezione","Segnale d'acquisto"],
   techniques:[
     "Chiusura parziale: riformula l'obiettivo e ottieni un «sì»",
@@ -411,7 +421,7 @@ pt:{
   endKicker:"Fim da reunião", endTitle:"O que reparou?",
   endSub:"A Consultora nunca pressionou o Jack. Mostrou-lhe o valor, manteve a calma quanto ao preço, fez com que a escolha parecesse segura e encontrou a verdadeira dúvida antes de a responder. Aqui estão as técnicas que usou:",
   replay:"Ver outra vez",
-  fs:{ enter:"Ecrã inteiro", exit:"Sair do ecrã inteiro", newtab:"Abrir num novo separador", hint:"Prima F11 para preencher o ecrã" },
+  fs:{ enter:"Ecrã inteiro", exit:"Sair do ecrã inteiro", hint:"Prima F11 para preencher o ecrã" },
   steps:["Reformular","Dar uma escolha","Apresentar o preço","Garantia","Pedir para começar","Tratar a objeção","Sinal de compra"],
   techniques:[
     "Fecho parcial: reformule o objetivo e obtenha um “sim”",
@@ -472,7 +482,7 @@ es:{
   endKicker:"Fin de la cita", endTitle:"¿Qué has notado?",
   endSub:"La Consultora nunca presionó a Jack. Le mostró el valor, mantuvo la calma con el precio, hizo que la decisión resultara segura y encontró su duda real antes de responderla. Estas son las técnicas que usó:",
   replay:"Ver otra vez",
-  fs:{ enter:"Pantalla completa", exit:"Salir de pantalla completa", newtab:"Abrir en una pestaña nueva", hint:"Pulsa F11 para ocupar toda la pantalla" },
+  fs:{ enter:"Pantalla completa", exit:"Salir de pantalla completa", hint:"Pulsa F11 para ocupar toda la pantalla" },
   steps:["Repetir lo dicho","Dar una opción","Presentar el precio","Garantía","Pedir que empiece","Tratar la objeción","Señal de compra"],
   techniques:[
     "Cierre parcial: repite el objetivo y consigue un «sí»",
@@ -533,7 +543,7 @@ fr:{
   endKicker:"Fin du rendez-vous", endTitle:"Qu'avez-vous remarqué ?",
   endSub:"La Conseillère n'a jamais forcé Jack. Elle lui a montré la valeur, elle est restée calme sur le prix, elle a rendu le choix rassurant, et elle a trouvé son vrai doute avant d'y répondre. Voici les techniques qu'elle a utilisées :",
   replay:"Revoir",
-  fs:{ enter:"Plein écran", exit:"Quitter le plein écran", newtab:"Ouvrir dans un nouvel onglet", hint:"Appuyez sur F11 pour remplir l'écran" },
+  fs:{ enter:"Plein écran", exit:"Quitter le plein écran", hint:"Appuyez sur F11 pour remplir l'écran" },
   steps:["Reformuler","Donner un choix","Présenter le prix","Garantie","Proposer de commencer","Traiter l'objection","Signal d'achat"],
   techniques:[
     "Conclusion partielle : reformulez l'objectif et obtenez un « oui »",
@@ -594,7 +604,7 @@ ar:{
   endKicker:"نهاية الموعد", endTitle:"ماذا لاحظت؟",
   endSub:"لم تضغط المستشارة على جاك في أي لحظة. أظهرت له القيمة، وبقيت هادئة عند ذكر السعر، وجعلت القرار يبدو آمنًا، ووجدت شكّه الحقيقي قبل أن تجيب عنه. وهذه هي المهارات التي استخدمتها:",
   replay:"شاهد مرة أخرى",
-  fs:{ enter:"ملء الشاشة", exit:"إنهاء ملء الشاشة", newtab:"فتح في تبويب جديد", hint:"اضغط F11 لملء الشاشة" },
+  fs:{ enter:"ملء الشاشة", exit:"إنهاء ملء الشاشة", hint:"اضغط F11 لملء الشاشة" },
   steps:["أعد صياغة الهدف","اعرض خيارين","اعرض السعر","الضمان","اطلب البدء","عالج الاعتراض","إشارة الشراء"],
   techniques:[
     "إغلاق جزئي: أعد صياغة الهدف واحصل على «نعم»",
@@ -830,10 +840,12 @@ document.addEventListener("keydown",e=>{
    the lower half of the activity below the fold, where nothing inside the
    iframe can detect it. This is the escape hatch.
 
-   It degrades fullscreen -> new tab -> hint, because an LMS may rewrite or
-   strip allowfullscreen on the iframe tag. Ported from SANDBOXTEMPLATE; the
-   toast and i18n lookups it relied on do not exist here, so the labels come
-   from the activity's own copy object and the hint borrows the button label. */
+   Our LMS embed grants allowfullscreen, so this is a real Fullscreen API
+   call, never a new tab: popping out to a tab loses the learner's place in
+   the course and orphans them outside the player. The only fallback left is
+   an inline F11 hint. Ported from SANDBOXTEMPLATE; the toast and i18n
+   lookups it relied on do not exist here, so the labels come from the
+   activity's own copy object. */
 const FS = UI.fs;
 const FS_W = 920, FS_H = 620;
 const fsBtn = document.getElementById("fsBtn");
@@ -841,21 +853,16 @@ const fsLabelEl = fsBtn && fsBtn.querySelector(".fs-label");
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
 // false when the embedding iframe carries no allowfullscreen
 const fsSupported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-// about:srcdoc, blob: and data: cannot be reopened as a top-level document
-const fsCanPopOut = /^https?:$/.test(location.protocol);
-let fsMode = fsSupported ? "fullscreen" : (fsCanPopOut ? "popout" : "hint");
+let fsMode = fsSupported ? "fullscreen" : "hint";
 let fsHintTimer;
 
 function syncFsLabel(){
   if(!fsBtn) return;
   const on = !!fsEl();
-  const t = fsMode === "popout" ? FS.newtab : on ? FS.exit : FS.enter;
+  const t = on ? FS.exit : FS.enter;
   fsLabelEl.textContent = t; fsBtn.title = t;
   fsBtn.classList.toggle("is-on", on);
-  // aria-pressed describes a toggle; in popout mode this is a one-way action,
-  // so drop the attribute rather than lie with "false"
-  if(fsMode === "popout") fsBtn.removeAttribute("aria-pressed");
-  else fsBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  fsBtn.setAttribute("aria-pressed", on ? "true" : "false");
 }
 // there is no toast component in these activities, so the hint borrows the
 // button's own label for a few seconds
@@ -864,7 +871,7 @@ function fsHint(){
   fsLabelEl.textContent = FS.hint; fsBtn.title = FS.hint;
   clearTimeout(fsHintTimer); fsHintTimer = setTimeout(syncFsLabel, 4000);
 }
-function fsDemote(){ fsMode = fsCanPopOut ? "popout" : "hint"; syncFsLabel(); fsHint(); }
+function fsDemote(){ fsMode = "hint"; syncFsLabel(); fsHint(); }
 
 /* Scale the stage rather than stretch it. This is a fixed 920xH design, so
    plain fullscreen on a large monitor would just centre a postage stamp in a
@@ -877,11 +884,6 @@ function fitStage(){
 
 function toggleFullscreen(){
   if(fsMode === "hint"){ fsHint(); return; }
-  if(fsMode === "popout"){
-    // returns null when the iframe is sandboxed without allow-popups
-    if(!window.open(location.href, "_blank", "noopener")){ fsMode = "hint"; fsDemote(); }
-    return;
-  }
   if(fsEl()){ (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
   /* documentElement, NOT .stage: element fullscreen forces width/height:100%
      over the fixed design and paints an opaque black ::backdrop, which would
